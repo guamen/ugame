@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego - Dispara al Rostro</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      touch-action: manipulation;
+    }
+    #gameContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    #gameCanvas {
+      width: 100%;
+      max-width: 500px;
+      height: 70vh;
+      max-height: 700px;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #444;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .enemy {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+    .player {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 60px;
+      background-color: #fff;
+      border-radius: 50%;
+      background-image: url('personaje_principal.png');
+      background-size: cover;
+    }
+    .bullet {
+      position: absolute;
+      width: 4px;
+      height: 15px;
+      background-color: red;
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 16px;
+      background-color: rgba(0,0,0,0.5);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+    @keyframes shake {
+      0% { transform: translateX(-50%) translateX(0); }
+      25% { transform: translateX(-50%) translateX(-5px); }
+      50% { transform: translateX(-50%) translateX(5px); }
+      75% { transform: translateX(-50%) translateX(-5px); }
+      100% { transform: translateX(-50%) translateX(0); }
+    }
+    .shake {
+      animation: shake 0.2s;
+    }
+    .explosion {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, yellow 0%, red 50%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: explode 0.4s ease-out forwards;
+    }
+    @keyframes explode {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+    .life-capture {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, white 0%, gold 50%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: glow-capture 0.4s ease-out forwards;
+    }
+    @keyframes glow-capture {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+    #controls {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 500px;
+      margin-top: 10px;
+    }
+    #movementControls {
+      display: flex;
+      gap: 20px;
+    }
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      background-color: rgba(255,255,255,0.2);
+      border: 2px solid white;
+      border-radius: 50%;
+      color: white;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .control-btn:active {
+      background-color: rgba(255,255,255,0.4);
+    }
+    #fireBtn {
+      background-color: rgba(255, 0, 0, 0.3);
+      border-color: red;
+      margin-left: auto; /* Push fire button to the right */
+    }
+    #fireBtn:active {
+      background-color: rgba(255, 0, 0, 0.6);
+    }
+    #gameOverMessage {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      text-align: center;
+    }
+    #timeUpMessage {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      background-color: rgba(0,0,0,0.7);
+      color: red;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      text-align: center;
+    }
+    #toggleMusic {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 999;
+      font-size: 14px;
+      padding: 5px 10px;
+      background-color: rgba(0,0,0,0.5);
+      border: 1px solid white;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #bossTimer {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 200px;
+      height: 10px;
+      background-color: rgba(0,0,0,0.5);
+      border-radius: 5px;
+      overflow: hidden;
+      display: none;
+    }
+    #bossTimerFill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(to right, #0f0, #ff0, #f00);
+      transition: width 1s linear;
+    }
+    #bossTimerText {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 14px;
+      text-shadow: 1px 1px 2px black;
+    }
+    @media (max-width: 500px) {
+      #gameCanvas {
+        height: 60vh;
+      }
+      .enemy {
+        width: 60px;
+        height: 60px;
+      }
+      .player {
+        width: 50px;
+        height: 50px;
+      }
+      .control-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+      #hud {
+        font-size: 14px;
+      }
+      #gameOverMessage, #timeUpMessage {
+        font-size: 24px;
+        width: 80%;
+        box-sizing: border-box;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <button id="toggleMusic">🔊 Música</button>
+    <div id="gameCanvas">
+      <div class="player" id="player"></div>
+      <div id="gameOverMessage">Perdiiiiiste!!<br><small>Presiona ESPACIO para reiniciar</small></div>
+      <div id="timeUpMessage">¡Tiempo agotado!<br>Fernandox te ha derrotado<br><small>Presiona ESPACIO para reiniciar</small></div>
+      <div id="hud">Boletas: <span id="lives">3</span> | Puntos: <span id="score">0</span></div>
+      <div id="bossTimer">
+        <div id="bossTimerFill"></div>
+        <div id="bossTimerText">1:00</div>
+      </div>
+    </div>
+    <div id="controls">
+      <div id="movementControls">
+        <div class="control-btn" id="leftBtn">←</div>
+        <div class="control-btn" id="rightBtn">→</div>
+      </div>
+      <div class="control-btn" id="fireBtn">Fuego!</div>
+    </div>
+  </div>
+  
+  <audio id="lifeSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
+  <audio id="enemyHitSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3"></audio>
+  <audio id="hitSound" src="enemigo_vencido.mp3"></audio>
+  <audio id="bgMusic" src="musica_fondo.mp3" loop></audio>
+  <audio id="timeWarningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
+  <audio id="timeUpSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3"></audio>
+
+<script>
+window.onload = () => {
+  const canvas = document.getElementById("gameCanvas");
+  const player = document.getElementById("player");
+  const scoreDisplay = document.getElementById("score");
+  const livesDisplay = document.getElementById("lives");
+  const gameOverMessage = document.getElementById("gameOverMessage");
+  const timeUpMessage = document.getElementById("timeUpMessage");
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+  const fireBtn = document.getElementById("fireBtn");
+  const bossTimer = document.getElementById("bossTimer");
+  const bossTimerFill = document.getElementById("bossTimerFill");
+  const bossTimerText = document.getElementById("bossTimerText");
+  const bgMusic = document.getElementById("bgMusic"); // Get music element once
+  
+  const enemyImages = [
+    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png",
+  ];
+  
+  const testMode = false;
+  let score = 0;
+  let lives = 3;
+  let currentLevel = 0;
+  let gamePaused = false;
+  let bossActive = false;
+  let bossElement = null;
+  let bossHealth = 0;
+  let bossHealthBar = null;
+  let enemyFallSpeed = 2;
+  let lastLifeDropScore = 0;
+  let leftPressed = false;
+  let rightPressed = false;
+  let bossTimerInterval;
+  let timeLeft = 60;
+  let warningPlayed = false;
+  let isMusicEnabled = true; // NEW: Track if user wants music
+
+  // --- NEW MUSIC HELPER FUNCTIONS ---
+  function playMusic() {
+    // Only play if music is enabled by the user and the game is not paused
+    if (isMusicEnabled && !gamePaused) {
+      bgMusic.play().catch(e => console.log("User needs to interact with the page for music to start."));
+    }
+  }
+
+  function pauseMusic() {
+    bgMusic.pause();
+  }
+
+  // Touch controls
+  leftBtn.addEventListener("touchstart", (e) => { e.preventDefault(); leftPressed = true; });
+  leftBtn.addEventListener("touchend", (e) => { e.preventDefault(); leftPressed = false; });
+  leftBtn.addEventListener("mousedown", () => leftPressed = true);
+  leftBtn.addEventListener("mouseup", () => leftPressed = false);
+  leftBtn.addEventListener("mouseleave", () => leftPressed = false);
+
+  rightBtn.addEventListener("touchstart", (e) => { e.preventDefault(); rightPressed = true; });
+  rightBtn.addEventListener("touchend", (e) => { e.preventDefault(); rightPressed = false; });
+  rightBtn.addEventListener("mousedown", () => rightPressed = true);
+  rightBtn.addEventListener("mouseup", () => rightPressed = false);
+  rightBtn.addEventListener("mouseleave", () => rightPressed = false);
+
+  fireBtn.addEventListener("click", shootBullet);
+  fireBtn.addEventListener("touchstart", (e) => { e.preventDefault(); shootBullet(); });
+
+  // Keyboard controls
+  let keys = {};
+  
+  document.addEventListener("keydown", (e) => {
+    keys[e.code] = true;
+    if (e.code === "Space") {
+      e.preventDefault(); 
+      if (gamePaused) {
+        resetGame();
+      } else {
+        shootBullet();
+      }
+    }
+  });
+
+  document.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+  function handleMovement() {
+    if (gamePaused) return;
+    if (keys["ArrowLeft"] || leftPressed) {
+      player.style.left = Math.max(0, player.offsetLeft - 5) + "px";
+    }
+    if (keys["ArrowRight"] || rightPressed) {
+      player.style.left = Math.min(canvas.clientWidth - player.offsetWidth, player.offsetLeft + 5) + "px";
+    }
+  }
+
+  setInterval(handleMovement, 16);
+
+  function shootBullet() {
+    if (gamePaused) return;
+    
+    const bullet = document.createElement("div");
+    bullet.className = "bullet";
+    bullet.style.left = player.offsetLeft + player.offsetWidth / 2 - 2 + "px";
+    bullet.style.top = player.offsetTop + "px";
+    canvas.appendChild(bullet);
+
+    let top = player.offsetTop;
+    const interval = setInterval(() => {
+      if (gamePaused) {
+        bullet.remove();
+        clearInterval(interval);
+        return;
+      }
+      top -= 10;
+      bullet.style.top = top + "px";
+      const targets = document.querySelectorAll(".enemy, .life-drop, #fernandox");
+      targets.forEach(target => {
+        const tRect = target.getBoundingClientRect();
+        const bRect = bullet.getBoundingClientRect();
+        if (bRect.top < tRect.bottom && bRect.bottom > tRect.top && bRect.left < tRect.right && bRect.right > tRect.left) {
+          if (target.classList.contains("life-drop")) {
+            document.getElementById("lifeSound").play();
+            lives++;
+            livesDisplay.textContent = lives;
+            target.remove();
+          } else if (target.id === "fernandox") {
+            bossHealth--;
+            const fill = bossHealthBar?.querySelector("#bossBarFill");
+            if (fill) {
+              fill.style.width = (bossHealth * 10) + "%";
+              fill.style.transition = "none";
+              fill.style.background = "#fff";
+              setTimeout(() => { fill.style.transition = "width 0.3s linear"; fill.style.background = "#f00"; }, 100);
+            }
+            if (bossHealth <= 0) {
+              defeatFernandox();
+              score += 100;
+              scoreDisplay.textContent = score;
+              target.remove();
+            }
+          } else {
+            document.getElementById("hitSound").play();
+            score += 10;
+            scoreDisplay.textContent = score;
+            updateLevel();
+            target.remove();
+          }
+          bullet.remove();
+          clearInterval(interval);
+        }
+      });
+      if (top < 0) {
+        bullet.remove();
+        clearInterval(interval);
+      }
+    }, 16);
+  }
+
+  function updateLevel() {
+    const newLevel = Math.min(Math.floor(score / 200), enemyImages.length - 1);
+    if (newLevel !== currentLevel) {
+      currentLevel = newLevel;
+      enemyFallSpeed = 2 * (1 + currentLevel * 0.1);
+    }
+  }
+
+  function createEnemy() {
+    if (gamePaused) return;
+    if (score > 0 && score - lastLifeDropScore >= 200) { createLifeDrop(); lastLifeDropScore = score; }
+    const enemy = document.createElement("img");
+    const randomIndex = Math.floor(Math.random() * enemyImages.length);
+    enemy.src = enemyImages[randomIndex];
+    enemy.className = "enemy";
+    enemy.style.left = Math.random() * (canvas.clientWidth - 80) + "px";
+    enemy.style.top = "-100px";
+    canvas.appendChild(enemy);
+    fall(enemy);
+  }
+
+  function fall(entity, isLife = false) {
+    let top = -100;
+    const interval = setInterval(() => {
+      if (gamePaused || (bossActive && !isLife)) { clearInterval(interval); return; }
+      top += enemyFallSpeed + 2;
+      entity.style.top = top + "px";
+      const pRect = player.getBoundingClientRect();
+      const eRect = entity.getBoundingClientRect();
+      if (eRect.bottom > pRect.top && eRect.top < pRect.bottom && eRect.right > pRect.left && eRect.left < pRect.right) {
+        if (isLife) { document.getElementById("lifeSound").play(); lives++; livesDisplay.textContent = lives; } 
+        else { loseLife(); }
+        entity.remove();
+        clearInterval(interval);
+        return;
+      }
+      if (entity.offsetTop + entity.offsetHeight >= canvas.clientHeight) {
+        if (!isLife) loseLife();
+        entity.remove();
+        clearInterval(interval);
+      }
+    }, 16);
+  }
+
+  function createLifeDrop() {
+    const life = document.createElement("img");
+    life.src = "mVIDA.png";
+    life.className = "enemy life-drop";
+    life.style.left = Math.random() * (canvas.clientWidth - 80) + "px";
+    life.style.top = "-100px";
+    canvas.appendChild(life);
+    fall(life, true);
+  }
+
+  function loseLife() {
+    lives--;
+    livesDisplay.textContent = lives;
+    player.classList.add("shake");
+    setTimeout(() => player.classList.remove("shake"), 200);
+    if (lives <= 0) { gameOver(); }
+  }
+
+  function gameOver() {
+    gameOverMessage.style.display = "block";
+    gamePaused = true;
+    pauseMusic(); // UPDATED: Pause music on game over
+  }
+
+  function resetGame() {
+    gamePaused = false;
+    gameOverMessage.style.display = "none";
+    timeUpMessage.style.display = "none";
+    lives = 3;
+    score = 0;
+    currentLevel = 0;
+    enemyFallSpeed = 2;
+    livesDisplay.textContent = lives;
+    scoreDisplay.textContent = score;
+    document.querySelectorAll(".enemy, .bullet, .boss, .life-drop").forEach(el => el.remove());
+    if (bossHealthBar) bossHealthBar.remove();
+    bossActive = false;
+    bossElement = null;
+    bossHealthBar = null;
+    bossTimer.style.display = "none";
+    clearInterval(bossTimerInterval);
+    createEnemy();
+    playMusic(); // UPDATED: Resume music on reset
+  }
+
+  function spawnFernandox() {
+    bossActive = true;
+    bossHealth = 10 + Math.floor(score / 1000) * 5;
+    bossElement = document.createElement("img");
+    bossElement.src = "m10.png";
+    bossElement.className = "enemy boss";
+    bossElement.style.top = "50px";
+    bossElement.style.left = Math.random() * (canvas.clientWidth - 100) + "px";
+    bossElement.style.transition = "left 0.5s linear";
+    bossElement.id = "fernandox";
+    canvas.appendChild(bossElement);
+    bossHealthBar = document.createElement("div");
+    bossHealthBar.style.position = "absolute";
+    bossHealthBar.style.top = "20px";
+    bossHealthBar.style.left = "50%";
+    bossHealthBar.style.transform = "translateX(-50%)";
+    bossHealthBar.style.width = "80%";
+    bossHealthBar.style.maxWidth = "200px";
+    bossHealthBar.style.height = "15px";
+    bossHealthBar.style.background = "#400";
+    bossHealthBar.style.borderRadius = "5px";
+    bossHealthBar.style.overflow = "hidden";
+    bossHealthBar.innerHTML = '<div id="bossBarFill" style="width:100%; height:100%; background:#f00; transition:width 0.3s linear;"></div>';
+    canvas.appendChild(bossHealthBar);
+    startBossTimer();
+    const speedFactor = Math.max(200, 800 - Math.floor(score / 1000) * 100);
+    moveFernandox(speedFactor);
+  }
+
+  function startBossTimer() {
+    timeLeft = 60;
+    warningPlayed = false;
+    bossTimer.style.display = "block";
+    updateTimerDisplay();
+    if (bossTimerInterval) clearInterval(bossTimerInterval);
+    bossTimerInterval = setInterval(() => {
+      if (gamePaused || !bossActive) return;
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 10 && !warningPlayed) { document.getElementById("timeWarningSound").play(); warningPlayed = true; }
+      if (timeLeft <= 0) { timeUp(); clearInterval(bossTimerInterval); }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    bossTimerText.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    bossTimerFill.style.width = `${(timeLeft / 60) * 100}%`;
+  }
+
+  function timeUp() {
+    document.getElementById("timeUpSound").play();
+    timeUpMessage.style.display = "block";
+    gamePaused = true;
+    pauseMusic(); // UPDATED: Pause music when time is up
+    bossActive = false;
+    if (bossElement) bossElement.remove();
+    if (bossHealthBar) bossHealthBar.remove();
+    bossTimer.style.display = "none";
+  }
+
+  function moveFernandox(speed) {
+    const interval = setInterval(() => {
+      if (!bossElement || !document.body.contains(bossElement)) { clearInterval(interval); return; }
+      bossElement.style.left = Math.random() * (canvas.clientWidth - 100) + "px";
+    }, speed);
+  }
+
+  function defeatFernandox() {
+    if (bossElement) {
+      clearInterval(bossTimerInterval);
+      bossTimer.style.display = "none";
+      const message = document.createElement("div");
+      message.textContent = "¡Has vencido a Fernandox!";
+      message.style.position = "absolute";
+      message.style.top = "50%";
+      message.style.left = "50%";
+      message.style.transform = "translate(-50%, -50%)";
+      message.style.fontSize = "24px";
+      message.style.color = "gold";
+      message.style.backgroundColor = "rgba(0,0,0,0.7)";
+      message.style.padding = "15px";
+      message.style.borderRadius = "10px";
+      message.style.zIndex = "1000";
+      message.style.textAlign = "center";
+      canvas.appendChild(message);
+      setTimeout(() => message.remove(), 2000);
+      lives += 5;
+      livesDisplay.textContent = lives;
+      bossElement.remove();
+      bossHealthBar.remove();
+      bossElement = null;
+      bossHealthBar = null;
+      bossActive = false;
+      setTimeout(() => createEnemy(), 1000);
+    }
+  }
+
+  setInterval(() => {
+    if (!gamePaused) {
+      if ((testMode && score >= 100 || score > 0 && score % 500 === 0) && !bossActive) { spawnFernandox(); } 
+      else if (!bossActive) { createEnemy(); }
+    }
+  }, 1500);
+
+  // UPDATED: Music toggle button logic
+  document.getElementById("toggleMusic").addEventListener("click", () => {
+    isMusicEnabled = !isMusicEnabled; // Flip the user's preference
+    if (isMusicEnabled) {
+      document.getElementById("toggleMusic").textContent = "🔊 Música";
+      playMusic();
+    } else {
+      document.getElementById("toggleMusic").textContent = "🔇 Música";
+      pauseMusic();
+    }
+  });
+
+  // --- INITIAL GAME START ---
+  createEnemy();
+  
+  playMusic();
+
+};
+</script>
+</body>
+</html>
