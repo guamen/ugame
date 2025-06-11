@@ -264,6 +264,7 @@
   <audio id="bgMusic" src="musica_fondo.mp3" loop></audio>
   <audio id="timeWarningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
   <audio id="timeUpSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3"></audio>
+  <audio id="shootSound" src="disparo.mp3"></audio>
 
 <script>
 window.onload = () => {
@@ -362,7 +363,8 @@ window.onload = () => {
 
   function shootBullet() {
     if (gamePaused) return;
-    
+    document.getElementById("shootSound").play(); // Reproducir sonido de disparo
+
     const bullet = document.createElement("div");
     bullet.className = "bullet";
     bullet.style.left = player.offsetLeft + player.offsetWidth / 2 - 2 + "px";
