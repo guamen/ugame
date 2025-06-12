@@ -463,6 +463,7 @@ window.onload = () => {
               lives++;
               scoreDisplay.textContent = score;
               livesDisplay.textContent = lives;
+              updateLevel();
             }
             else {
               document.getElementById("hitSound").play();
