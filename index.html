@@ -723,7 +723,8 @@ window.onload = () => {
   startGameMessage.style.display = "flex";
   gamePaused = true;
 
-  function startGameListener() {
+  function startGameListener(e) {
+    if (e.type === "touchstart") e.preventDefault();
     startGame();
     document.removeEventListener("keydown", startGameListener);
     document.removeEventListener("touchstart", startGameListener);
@@ -731,7 +732,7 @@ window.onload = () => {
   }
 
   document.addEventListener("keydown", startGameListener);
-  document.addEventListener("touchstart", startGameListener);
+  document.addEventListener("touchstart", startGameListener, { passive: false });
   document.addEventListener("mousedown", startGameListener);
 };
 </script>
