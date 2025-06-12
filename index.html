@@ -606,6 +606,8 @@ window.onload = () => {
     bossHealthBar = null;
     bossTimer.style.display = "none";
     clearInterval(bossTimerInterval);
+    stopFernandoxShooting();
+    lastBossScore = 0; // <-- REINICIA AQUÍ
     createEnemy();
     playMusic();
   }
@@ -620,7 +622,7 @@ window.onload = () => {
     bossElement.style.left = Math.random() * (canvas.clientWidth - 100) + "px";
     bossElement.style.transition = "left 0.5s linear";
     bossElement.id = "fernandox";
-    bossElement.style.border = "4px solid #f00"; // <-- Borde rojo para Fernandox
+    bossElement.style.border = "4px solid #f00";
     bossElement.style.boxSizing = "border-box";
     canvas.appendChild(bossElement);
     bossHealthBar = document.createElement("div");
@@ -639,6 +641,75 @@ window.onload = () => {
     startBossTimer();
     const speedFactor = Math.max(200, 800 - Math.floor(score / 1000) * 100);
     moveFernandox(speedFactor);
+    startFernandoxShooting(); // <-- Inicia disparos del jefe
+  }
+
+  // Disparo del jefe
+  function fernandoxShoot() {
+    if (!bossActive || !bossElement || gamePaused) return;
+
+    // Crear la bala del jefe
+    const bossBullet = document.createElement("div");
+    bossBullet.className = "bullet";
+    bossBullet.style.background = "#00f"; // Azul para distinguir
+    bossBullet.style.width = "10px";
+    bossBullet.style.height = "24px";
+    bossBullet.style.borderRadius = "6px";
+    bossBullet.style.position = "absolute";
+    bossBullet.style.left = (bossElement.offsetLeft + bossElement.offsetWidth / 2 - 5) + "px";
+    bossBullet.style.top = (bossElement.offsetTop + bossElement.offsetHeight) + "px";
+    bossBullet.style.zIndex = "2";
+    canvas.appendChild(bossBullet);
+
+    let top = bossElement.offsetTop + bossElement.offsetHeight;
+    const interval = setInterval(() => {
+      if (!bossActive || !bossElement || gamePaused) {
+        bossBullet.remove();
+        clearInterval(interval);
+        return;
+      }
+      top += 10;
+      bossBullet.style.top = top + "px";
+
+      // Colisión con el jugador
+      const pRect = player.getBoundingClientRect();
+      const bRect = bossBullet.getBoundingClientRect();
+      if (
+        bRect.bottom > pRect.top &&
+        bRect.top < pRect.bottom &&
+        bRect.right > pRect.left &&
+        bRect.left < pRect.right
+      ) {
+        bossBullet.remove();
+        clearInterval(interval);
+        showFloatingMessage("-1 boletas");
+        loseLife();
+        return;
+      }
+
+      // Fuera de pantalla
+      if (top > canvas.clientHeight) {
+        bossBullet.remove();
+        clearInterval(interval);
+      }
+    }, 20);
+  }
+
+  // Llama a fernandoxShoot cada cierto tiempo mientras el jefe esté activo
+  let fernandoxShootInterval = null;
+
+  function startFernandoxShooting() {
+    if (fernandoxShootInterval) clearInterval(fernandoxShootInterval);
+    fernandoxShootInterval = setInterval(() => {
+      if (bossActive && bossElement && !gamePaused) {
+        fernandoxShoot();
+      }
+    }, 1200); // Dispara cada 1.2 segundos
+  }
+
+  function stopFernandoxShooting() {
+    if (fernandoxShootInterval) clearInterval(fernandoxShootInterval);
+    fernandoxShootInterval = null;
   }
 
   function startBossTimer() {
@@ -669,6 +740,7 @@ window.onload = () => {
     gamePaused = true;
     pauseMusic();
     bossActive = false;
+    stopFernandoxShooting(); // <-- Detén disparos
     if (bossElement) bossElement.remove();
     if (bossHealthBar) bossHealthBar.remove();
     bossTimer.style.display = "none";
@@ -695,6 +767,7 @@ window.onload = () => {
   function defeatFernandox() {
     if (bossElement) {
       clearInterval(bossTimerInterval);
+      stopFernandoxShooting(); // <-- Detén disparos
       bossTimer.style.display = "none";
       const message = document.createElement("div");
       message.textContent = "¡Has vencido a Fernandox!";
@@ -748,7 +821,6 @@ window.onload = () => {
 
   setInterval(() => {
     if (!gamePaused && gameStarted) {
-      // Solo aparece una vez por cada múltiplo de 500
       if (
         !bossActive &&
         score > 0 &&
