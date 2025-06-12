@@ -210,35 +210,37 @@
     }
     @media (max-width: 500px) {
       #gameCanvas {
-        height: 60vh;
+        height: 80vh;         /* Más alto en mobile */
+        max-height: none;
+        min-height: 400px;
       }
-      .enemy {
-        width: 60px;
-        height: 60px;
+      #toggleMusic {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: auto;
+        z-index: 999;
+        font-size: 18px;
+        padding: 8px 16px;
       }
-      .player {
-        width: 50px;
-        height: 50px;
+      #controls {
+        position: relative;
+        margin-top: 10px;
+        margin-bottom: 0;
+        width: 100%;
+        max-width: 500px;
+        display: flex;
+        justify-content: center;
+        background: none;
       }
-      .control-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
-      }
-      #hud {
-        font-size: 14px;
-      }
-      #gameOverMessage, #timeUpMessage {
-        font-size: 24px;
-        width: 80%;
-        box-sizing: border-box;
+      #gameContainer {
+        padding-bottom: 0;
       }
     }
   </style>
 </head>
 <body>
   <div id="gameContainer">
-    <button id="toggleMusic">🔊 Música</button>
     <div id="gameCanvas">
       <div class="player" id="player"></div>
       <div id="gameOverMessage">Perdiiiiiste!!<br><small>Presiona ESPACIO para reiniciar</small></div>
@@ -542,6 +544,17 @@ window.onload = () => {
     gameOverMessage.style.display = "block";
     gamePaused = true;
     pauseMusic();
+
+    // Permitir reinicio con cualquier tecla o touch
+    function restartListener() {
+      resetGame();
+      document.removeEventListener("keydown", restartListener);
+      document.removeEventListener("touchstart", restartListener);
+      document.removeEventListener("mousedown", restartListener);
+    }
+    document.addEventListener("keydown", restartListener);
+    document.addEventListener("touchstart", restartListener);
+    document.addEventListener("mousedown", restartListener);
   }
 
   function resetGame() {
@@ -625,6 +638,17 @@ window.onload = () => {
     if (bossElement) bossElement.remove();
     if (bossHealthBar) bossHealthBar.remove();
     bossTimer.style.display = "none";
+
+    // Permitir reinicio con cualquier tecla o touch
+    function restartListener() {
+      resetGame();
+      document.removeEventListener("keydown", restartListener);
+      document.removeEventListener("touchstart", restartListener);
+      document.removeEventListener("mousedown", restartListener);
+    }
+    document.addEventListener("keydown", restartListener);
+    document.addEventListener("touchstart", restartListener);
+    document.addEventListener("mousedown", restartListener);
   }
 
   function moveFernandox(speed) {
