@@ -277,7 +277,7 @@ window.onload = () => {
   //m12.png es el enemigo que resta 25 puntos
   //m11.png es el enemigo que deshabilita disparos por 1.5 segundos
   const enemyImages = [
-    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png","m12.png","m13.png","m14.png",
+    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png","m12.png","m13.png","m14.png","m15.png",
   ];
 
   const testMode = false;
@@ -442,6 +442,24 @@ window.onload = () => {
               }, 400);
               document.getElementById("enemyHitSound").cloneNode().play();
               showFloatingMessage("Sin disparo por 1 segundo", "#00bfff", target);
+            }
+            // Nueva bomba (m15.png): explota y elimina enemigos cercanos
+            else if (target.tagName === "IMG" && target.src.includes("m15.png")) {
+              // Explosión global: elimina todos los enemigos (pero NO fernandox)
+              document.querySelectorAll('.enemy:not(#fernandox), .life-drop').forEach(enemy => {
+                // Efecto visual de explosión
+                const explosion = document.createElement("div");
+                explosion.className = "explosion";
+                explosion.style.left = (enemy.offsetLeft + enemy.offsetWidth / 2 - 20) + "px";
+                explosion.style.top = (enemy.offsetTop + enemy.offsetHeight / 2 - 20) + "px";
+                canvas.appendChild(explosion);
+                setTimeout(() => explosion.remove(), 400);
+                enemy.remove();
+              });
+              // Elimina la bomba también
+              target.remove();
+              document.getElementById("hitSound").play();
+              
             }
             else {
               document.getElementById("hitSound").play();
@@ -704,7 +722,7 @@ window.onload = () => {
       if (bossActive && bossElement && !gamePaused) {
         fernandoxShoot();
       }
-    }, 1200); // Dispara cada 1.2 segundos
+    }, 600); // Dispara cada x segundos
   }
 
   function stopFernandoxShooting() {
