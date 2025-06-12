@@ -243,6 +243,9 @@
       <div class="player" id="player"></div>
       <div id="gameOverMessage">Perdiiiiiste!!<br><small>Presiona ESPACIO para reiniciar</small></div>
       <div id="timeUpMessage">¡Tiempo agotado!<br>Fernandox te ha derrotado<br><small>Presiona ESPACIO para reiniciar</small></div>
+      <div id="startGameMessage" style="display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; align-items: center; justify-content: center; z-index: 2000; font-size: 2em; text-align: center;">
+        Iniciar Juego<br><small>Pulsa cualquier tecla o toca la pantalla</small>
+      </div>
       <div id="hud">Boletas: <span id="lives">3</span> | Puntos: <span id="score">0</span></div>
       <div id="bossTimer">
         <div id="bossTimerFill"></div>
@@ -258,8 +261,8 @@
     </div>
   </div>
   
-  <audio id="lifeSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
-  <audio id="enemyHitSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3"></audio>
+  <audio id="lifeSound" src="nueva_vida.mp3"></audio>
+  <audio id="enemyHitSound" src="vida_menos.mp3"></audio>
   <audio id="hitSound" src="enemigo_vencido.mp3"></audio>
   <audio id="bgMusic" src="musica_fondo.mp3" loop></audio>
   <audio id="timeWarningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
@@ -280,12 +283,12 @@ window.onload = () => {
   const bossTimer = document.getElementById("bossTimer");
   const bossTimerFill = document.getElementById("bossTimerFill");
   const bossTimerText = document.getElementById("bossTimerText");
-  const bgMusic = document.getElementById("bgMusic"); // Get music element once
-  
+  const bgMusic = document.getElementById("bgMusic");
+
   const enemyImages = [
     "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png",
   ];
-  
+
   const testMode = false;
   let score = 0;
   let lives = 3;
@@ -302,13 +305,11 @@ window.onload = () => {
   let bossTimerInterval;
   let timeLeft = 60;
   let warningPlayed = false;
-  let isMusicEnabled = true; // NEW: Track if user wants music
+  let isMusicEnabled = true;
 
-  // --- NEW MUSIC HELPER FUNCTIONS ---
   function playMusic() {
-    // Only play if music is enabled by the user and the game is not paused
     if (isMusicEnabled && !gamePaused) {
-      bgMusic.play().catch(e => console.log("User needs to interact with the page for music to start."));
+      bgMusic.play().catch(e => {});
     }
   }
 
@@ -334,19 +335,17 @@ window.onload = () => {
 
   // Keyboard controls
   let keys = {};
-  
   document.addEventListener("keydown", (e) => {
     keys[e.code] = true;
     if (e.code === "Space") {
-      e.preventDefault(); 
-      if (gamePaused) {
+      e.preventDefault();
+      if (gamePaused && gameStarted) {
         resetGame();
-      } else {
+      } else if (!gamePaused && gameStarted) {
         shootBullet();
       }
     }
   });
-
   document.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
   function handleMovement() {
@@ -358,14 +357,13 @@ window.onload = () => {
       player.style.left = Math.min(canvas.clientWidth - player.offsetWidth, player.offsetLeft + 5) + "px";
     }
   }
-
   setInterval(handleMovement, 16);
 
   function shootBullet() {
     if (gamePaused) return;
     const shootSound = document.getElementById("shootSound").cloneNode();
-    shootSound.currentTime = 0; // Reinicia el audio
-    shootSound.play(); // Reproducir sonido de disparo
+    shootSound.currentTime = 0;
+    shootSound.play();
 
     const bullet = document.createElement("div");
     bullet.className = "bullet";
@@ -408,11 +406,23 @@ window.onload = () => {
               target.remove();
             }
           } else {
-            document.getElementById("hitSound").play();
-            score += 10;
-            scoreDisplay.textContent = score;
-            updateLevel();
-            target.remove();
+            // Si el enemigo es m9.png, resta una vida al jugador y reproduce sonido
+            if (target.tagName === "IMG" && target.src.includes("m9.png")) {
+              // Agrega borde rojo parpadeante antes de eliminar
+              target.style.animation = "red-flash 0.4s";
+              target.style.border = "4px solid red";
+              setTimeout(() => {
+                target.remove();
+              }, 400);
+              document.getElementById("enemyHitSound").cloneNode().play();
+              loseLife();
+            } else {
+              document.getElementById("hitSound").play();
+              score += 10;
+              scoreDisplay.textContent = score;
+              updateLevel();
+              target.remove();
+            }
           }
           bullet.remove();
           clearInterval(interval);
@@ -480,6 +490,7 @@ window.onload = () => {
   }
 
   function loseLife() {
+    document.getElementById("enemyHitSound").cloneNode().play();
     lives--;
     livesDisplay.textContent = lives;
     player.classList.add("shake");
@@ -490,7 +501,7 @@ window.onload = () => {
   function gameOver() {
     gameOverMessage.style.display = "block";
     gamePaused = true;
-    pauseMusic(); // UPDATED: Pause music on game over
+    pauseMusic();
   }
 
   function resetGame() {
@@ -511,7 +522,7 @@ window.onload = () => {
     bossTimer.style.display = "none";
     clearInterval(bossTimerInterval);
     createEnemy();
-    playMusic(); // UPDATED: Resume music on reset
+    playMusic();
   }
 
   function spawnFernandox() {
@@ -569,7 +580,7 @@ window.onload = () => {
     document.getElementById("timeUpSound").play();
     timeUpMessage.style.display = "block";
     gamePaused = true;
-    pauseMusic(); // UPDATED: Pause music when time is up
+    pauseMusic();
     bossActive = false;
     if (bossElement) bossElement.remove();
     if (bossHealthBar) bossHealthBar.remove();
@@ -614,15 +625,14 @@ window.onload = () => {
   }
 
   setInterval(() => {
-    if (!gamePaused) {
+    if (!gamePaused && gameStarted) {
       if ((testMode && score >= 100 || score > 0 && score % 500 === 0) && !bossActive) { spawnFernandox(); } 
       else if (!bossActive) { createEnemy(); }
     }
   }, 1500);
 
-  // UPDATED: Music toggle button logic
   document.getElementById("toggleMusic").addEventListener("click", () => {
-    isMusicEnabled = !isMusicEnabled; // Flip the user's preference
+    isMusicEnabled = !isMusicEnabled;
     if (isMusicEnabled) {
       document.getElementById("toggleMusic").textContent = "🔊 Música";
       playMusic();
@@ -632,11 +642,33 @@ window.onload = () => {
     }
   });
 
-  // --- INITIAL GAME START ---
-  createEnemy();
-  
-  playMusic();
+  // --- INICIO DEL JUEGO ---
+  const startGameMessage = document.getElementById("startGameMessage");
+  let gameStarted = false;
 
+  function startGame() {
+    if (gameStarted) return;
+    gameStarted = true;
+    startGameMessage.style.display = "none";
+    gamePaused = false;
+    createEnemy();
+    playMusic();
+  }
+
+  // Mostrar mensaje al inicio y esperar interacción
+  startGameMessage.style.display = "flex";
+  gamePaused = true;
+
+  function startGameListener() {
+    startGame();
+    document.removeEventListener("keydown", startGameListener);
+    document.removeEventListener("touchstart", startGameListener);
+    document.removeEventListener("mousedown", startGameListener);
+  }
+
+  document.addEventListener("keydown", startGameListener);
+  document.addEventListener("touchstart", startGameListener);
+  document.addEventListener("mousedown", startGameListener);
 };
 </script>
 </body>
