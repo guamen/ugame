@@ -233,42 +233,27 @@
         margin-bottom: 0;
       }
     }
-  </style>
-</head>
-<body>
-  <div id="gameContainer">
-    <div id="gameCanvas">
-      <button id="toggleMusic">🔊 Música</button>
-      <div class="player" id="player"></div>
-      <div id="gameOverMessage">Perdiiiiiste!!<br><small>Presiona ESPACIO para reiniciar</small></div>
-      <div id="timeUpMessage">¡Tiempo agotado!<br>Fernandox te ha derrotado<br><small>Presiona ESPACIO para reiniciar</small></div>
-      <div id="startGameMessage" style="display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; align-items: center; justify-content: center; z-index: 2000; font-size: 2em; text-align: center;">
-        Iniciar Juego<br><small>Pulsa cualquier tecla o toca la pantalla</small>
-      </div>
-      <div id="hud">Boletas: <span id="lives">3</span> | Puntos: <span id="score">0</span></div>
-      <div id="bossTimer">
-        <div id="bossTimerFill"></div>
-        <div id="bossTimerText">1:00</div>
-      </div>
-    </div>
-    <div id="controls">
-      <div id="movementControls">
-        <div class="control-btn" id="leftBtn">←</div>
-        <div class="control-btn" id="rightBtn">→</div>
-      </div>
-      <div class="control-btn" id="fireBtn">Fuego!</div>
-    </div>
-  </div>
-  
-  <audio id="lifeSound" src="nueva_vida.mp3"></audio>
-  <audio id="enemyHitSound" src="vida_menos.mp3"></audio>
-  <audio id="hitSound" src="enemigo_vencido.mp3"></audio>
-  <audio id="bgMusic" src="musica_fondo.mp3" loop></audio>
-  <audio id="timeWarningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
-  <audio id="timeUpSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3"></audio>
-  <audio id="shootSound" src="disparo.mp3"></audio>
+    .vida-efecto {
+      border: 4px double #fff700;
+      box-sizing: border-box;
+      animation: vida-brillo 0.7s infinite alternate;
+      box-shadow: 0 0 16px 4px #fff700, 0 0 32px 8px #ff0;
+    }
 
-<script>
+    @keyframes vida-brillo {
+      0% {
+        border-color: #fff700, #ff0;
+        box-shadow: 0 0 16px 4px #fff700, 0 0 32px 8px #ff0;
+        filter: brightness(1.2) drop-shadow(0 0 8px #fff700);
+      }
+      100% {
+        border-color: #ff0, #fff700;
+        box-shadow: 0 0 32px 8px #fff700, 0 0 48px 16px #ff0;
+        filter: brightness(1.6) drop-shadow(0 0 16px #fff700);
+      }
+    }
+  </style>
+  <script>
 window.onload = () => {
   const canvas = document.getElementById("gameCanvas");
   const player = document.getElementById("player");
@@ -286,14 +271,15 @@ window.onload = () => {
 
   //m9.png es el enemigo que resta vidas
   //m10.png es el jefe final Fernandox
-  //m12.png es el enemigo que resta 100 puntos
+  //m12.png es el enemigo que resta 25 puntos
+  //m11.png es el enemigo que deshabilita disparos por 1.5 segundos
   const enemyImages = [
     "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png","m12.png","m13.png","m14.png",
   ];
 
   const testMode = false;
   let score = 0;
-  let lives = 3;
+  let lives = 10;
   let currentLevel = 0;
   let gamePaused = false;
   let bossActive = false;
@@ -419,11 +405,12 @@ window.onload = () => {
                 target.remove();
               }, 400);
               document.getElementById("enemyHitSound").cloneNode().play();
+              showFloatingMessage("-1 boletas", "#ff3333", target);
               loseLife();
             }
-            // Si el enemigo es m12.png, le quita 100 puntos
+            // Si el enemigo es m12.png, le quita 25 puntos
             else if (target.tagName === "IMG" && target.src.includes("m12.png")) {
-              score = Math.max(0, score - 100);
+              score = Math.max(0, score - 10);
               scoreDisplay.textContent = score;
               target.style.animation = "red-flash 0.4s";
               target.style.border = "4px solid red";
@@ -431,8 +418,9 @@ window.onload = () => {
                 target.remove();
               }, 400);
               document.getElementById("enemyHitSound").cloneNode().play();
+              showFloatingMessage("-10 puntos de comisión", "#ffae00", target);
             }
-            // Si el enemigo es m11.png, deshabilita disparo por 5 segundos
+            // Si el enemigo es m11.png, deshabilita disparo por 1 segundo
             else if (target.tagName === "IMG" && target.src.includes("m11.png")) {
               canShoot = false;
               fireBtn.style.opacity = "0.5";
@@ -442,13 +430,14 @@ window.onload = () => {
                 canShoot = true;
                 fireBtn.style.opacity = "";
                 fireBtn.style.pointerEvents = "";
-              }, 1500);
+              }, 1000);
               target.style.animation = "red-flash 0.4s";
               target.style.border = "4px solid red";
               setTimeout(() => {
                 target.remove();
               }, 400);
               document.getElementById("enemyHitSound").cloneNode().play();
+              showFloatingMessage("Sin disparo por 1 segundo", "#00bfff", target);
             }
             else {
               document.getElementById("hitSound").play();
@@ -475,6 +464,12 @@ window.onload = () => {
       currentLevel = newLevel;
       enemyFallSpeed = 2 * (1 + currentLevel * 0.1);
     }
+
+    // Mostrar mVIDA por cada 100 puntos (y solo una vez por cada múltiplo)
+    if (score > 0 && score % 100 === 0 && score !== lastLifeDropScore) {
+      createLifeDrop();
+      lastLifeDropScore = score;
+    }
   }
 
   function createEnemy() {
@@ -484,8 +479,40 @@ window.onload = () => {
     const randomIndex = Math.floor(Math.random() * enemyImages.length);
     enemy.src = enemyImages[randomIndex];
     enemy.className = "enemy";
-    enemy.style.left = Math.random() * (canvas.clientWidth - 80) + "px";
+
+    // Intentar hasta 20 veces encontrar una posición que no se superponga
+    let attempts = 0;
+    let left;
+    let overlap;
+    do {
+      left = Math.random() * (canvas.clientWidth - 80);
+      overlap = false;
+      const existingEnemies = canvas.querySelectorAll('.enemy:not(.life-drop)');
+      for (const other of existingEnemies) {
+        const otherLeft = parseFloat(other.style.left);
+        // Si la distancia horizontal es menor a 80px, hay superposición
+        if (Math.abs(otherLeft - left) < 80 && Math.abs(other.offsetTop - (-100)) < 80) {
+          overlap = true;
+          break;
+        }
+      }
+      attempts++;
+    } while (overlap && attempts < 20);
+
+    enemy.style.left = left + "px";
     enemy.style.top = "-100px";
+
+    // Borde verde para todos excepto m9, m10, m11, m12
+    if (
+      !enemy.src.includes("m9.png") &&
+      !enemy.src.includes("m10.png") &&
+      !enemy.src.includes("m11.png") &&
+      !enemy.src.includes("m12.png")
+    ) {
+      enemy.style.border = "4px solid #0f0";
+      enemy.style.boxSizing = "border-box";
+    }
+
     canvas.appendChild(enemy);
     fall(enemy);
   }
@@ -525,6 +552,8 @@ window.onload = () => {
     life.className = "enemy life-drop";
     life.style.left = Math.random() * (canvas.clientWidth - 80) + "px";
     life.style.top = "-100px";
+    // Añade la clase para el efecto visual llamativo
+    life.classList.add("vida-efecto");
     canvas.appendChild(life);
     fall(life, true);
   }
@@ -559,7 +588,7 @@ window.onload = () => {
     gamePaused = false;
     gameOverMessage.style.display = "none";
     timeUpMessage.style.display = "none";
-    lives = 3;
+    lives = 10;
     score = 0;
     currentLevel = 0;
     enemyFallSpeed = 2;
@@ -686,6 +715,30 @@ window.onload = () => {
     }
   }
 
+  function showFloatingMessage(text) {
+    const msg = document.createElement("div");
+    msg.textContent = text;
+    msg.style.position = "absolute";
+    msg.style.fontSize = "2em";
+    msg.style.fontWeight = "bold";
+    msg.style.color = "red";
+    msg.style.background = "rgba(0,0,0,0.8)";
+    msg.style.padding = "16px 32px";
+    msg.style.borderRadius = "12px";
+    msg.style.zIndex = "3000";
+    msg.style.pointerEvents = "none";
+    msg.style.textAlign = "center";
+    msg.style.transition = "opacity 0.2s";
+    msg.style.opacity = "1";
+    msg.style.top = "50%";
+    msg.style.left = "50%";
+    msg.style.transform = "translate(-50%, -50%)";
+
+    canvas.appendChild(msg);
+    setTimeout(() => { msg.style.opacity = "0"; }, 900);
+    setTimeout(() => msg.remove(), 1100);
+  }
+
   setInterval(() => {
     if (!gamePaused && gameStarted) {
       if ((testMode && score >= 100 || score > 0 && score % 500 === 0) && !bossActive) { spawnFernandox(); } 
@@ -733,5 +786,40 @@ window.onload = () => {
   document.addEventListener("mousedown", startGameListener);
 };
 </script>
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="gameCanvas">
+      <button id="toggleMusic">🔊 Música</button>
+      <div class="player" id="player"></div>
+      <div id="gameOverMessage">Perdiiiiiste!!<br><small>Presiona ESPACIO para reiniciar</small></div>
+      <div id="timeUpMessage">¡Tiempo agotado!<br>Fernandox te ha derrotado<br><small>Presiona ESPACIO para reiniciar</small></div>
+      <div id="startGameMessage" style="display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; align-items: center; justify-content: center; z-index: 2000; font-size: 2em; text-align: center;">
+        Iniciar Juego<br><small>Pulsa cualquier tecla o toca la pantalla</small>
+      </div>
+      <div id="hud">Boletas: <span id="lives">10</span> | Puntos: <span id="score">0</span></div>
+      <div id="bossTimer">
+        <div id="bossTimerFill"></div>
+        <div id="bossTimerText">1:00</div>
+      </div>
+    </div>
+    <div id="controls">
+      <div id="movementControls">
+        <div class="control-btn" id="leftBtn">←</div>
+        <div class="control-btn" id="rightBtn">→</div>
+      </div>
+      <div class="control-btn" id="fireBtn">Fuego!</div>
+    </div>
+  </div>
+  
+  <audio id="lifeSound" src="nueva_vida.mp3"></audio>
+  <audio id="enemyHitSound" src="vida_menos.mp3"></audio>
+  <audio id="hitSound" src="enemigo_vencido.mp3"></audio>
+  <audio id="bgMusic" src="musica_fondo.mp3" loop></audio>
+  <audio id="timeWarningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3"></audio>
+  <audio id="timeUpSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3"></audio>
+  <audio id="shootSound" src="disparo.mp3"></audio>
+
+
 </body>
 </html>
