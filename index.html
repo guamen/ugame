@@ -287,8 +287,9 @@ window.onload = () => {
 
   //m9.png es el enemigo que resta vidas
   //m10.png es el jefe final Fernandox
+  //m12.png es el enemigo que resta 100 puntos
   const enemyImages = [
-    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png",
+    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png","m12.png",
   ];
 
   const testMode = false;
@@ -410,7 +411,6 @@ window.onload = () => {
           } else {
             // Si el enemigo es m9.png, resta una vida al jugador y reproduce sonido
             if (target.tagName === "IMG" && target.src.includes("m9.png")) {
-              // Agrega borde rojo parpadeante antes de eliminar
               target.style.animation = "red-flash 0.4s";
               target.style.border = "4px solid red";
               setTimeout(() => {
@@ -418,7 +418,19 @@ window.onload = () => {
               }, 400);
               document.getElementById("enemyHitSound").cloneNode().play();
               loseLife();
-            } else {
+            }
+            // Si el enemigo es m12.png, le quita 100 puntos
+            else if (target.tagName === "IMG" && target.src.includes("m12.png")) {
+              score = Math.max(0, score - 100);
+              scoreDisplay.textContent = score;
+              target.style.animation = "red-flash 0.4s";
+              target.style.border = "4px solid red";
+              setTimeout(() => {
+                target.remove();
+              }, 400);
+              document.getElementById("enemyHitSound").cloneNode().play();
+            }
+            else {
               document.getElementById("hitSound").play();
               score += 10;
               scoreDisplay.textContent = score;
@@ -474,8 +486,11 @@ window.onload = () => {
         return;
       }
       if (entity.offsetTop + entity.offsetHeight >= canvas.clientHeight) {
-        // No restar vida si es m9.png
-        if (!isLife && !(entity.tagName === "IMG" && entity.src.includes("m9.png"))) {
+        // No restar vida si es m9.png o m12.png
+        if (
+          !isLife &&
+          !(entity.tagName === "IMG" && (entity.src.includes("m9.png") || entity.src.includes("m12.png")))
+        ) {
           loseLife();
         }
         entity.remove();
