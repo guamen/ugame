@@ -363,7 +363,7 @@ window.onload = () => {
 
   function shootBullet() {
     if (gamePaused) return;
-    const shootSound = document.getElementById("shootSound");
+    const shootSound = document.getElementById("shootSound").cloneNode();
     shootSound.currentTime = 0; // Reinicia el audio
     shootSound.play(); // Reproducir sonido de disparo
 
