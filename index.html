@@ -289,7 +289,7 @@ window.onload = () => {
   //m10.png es el jefe final Fernandox
   //m12.png es el enemigo que resta 100 puntos
   const enemyImages = [
-    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png","m12.png",
+    "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png","m12.png","m13.png","m14.png",
   ];
 
   const testMode = false;
@@ -309,6 +309,8 @@ window.onload = () => {
   let timeLeft = 60;
   let warningPlayed = false;
   let isMusicEnabled = true;
+  let canShoot = true;
+  let m11Timeout = null;
 
   function playMusic() {
     if (isMusicEnabled && !gamePaused) {
@@ -333,8 +335,8 @@ window.onload = () => {
   rightBtn.addEventListener("mouseup", () => rightPressed = false);
   rightBtn.addEventListener("mouseleave", () => rightPressed = false);
 
-  fireBtn.addEventListener("click", shootBullet);
-  fireBtn.addEventListener("touchstart", (e) => { e.preventDefault(); shootBullet(); });
+  fireBtn.addEventListener("click", () => { if (canShoot) shootBullet(); });
+  fireBtn.addEventListener("touchstart", (e) => { e.preventDefault(); if (canShoot) shootBullet(); });
 
   // Keyboard controls
   let keys = {};
@@ -344,7 +346,7 @@ window.onload = () => {
       e.preventDefault();
       if (gamePaused && gameStarted) {
         resetGame();
-      } else if (!gamePaused && gameStarted) {
+      } else if (!gamePaused && gameStarted && canShoot) {
         shootBullet();
       }
     }
@@ -363,7 +365,7 @@ window.onload = () => {
   setInterval(handleMovement, 16);
 
   function shootBullet() {
-    if (gamePaused) return;
+    if (gamePaused || !canShoot) return;
     const shootSound = document.getElementById("shootSound").cloneNode();
     shootSound.currentTime = 0;
     shootSound.play();
@@ -430,6 +432,24 @@ window.onload = () => {
               }, 400);
               document.getElementById("enemyHitSound").cloneNode().play();
             }
+            // Si el enemigo es m11.png, deshabilita disparo por 5 segundos
+            else if (target.tagName === "IMG" && target.src.includes("m11.png")) {
+              canShoot = false;
+              fireBtn.style.opacity = "0.5";
+              fireBtn.style.pointerEvents = "none";
+              if (m11Timeout) clearTimeout(m11Timeout);
+              m11Timeout = setTimeout(() => {
+                canShoot = true;
+                fireBtn.style.opacity = "";
+                fireBtn.style.pointerEvents = "";
+              }, 1500);
+              target.style.animation = "red-flash 0.4s";
+              target.style.border = "4px solid red";
+              setTimeout(() => {
+                target.remove();
+              }, 400);
+              document.getElementById("enemyHitSound").cloneNode().play();
+            }
             else {
               document.getElementById("hitSound").play();
               score += 10;
@@ -486,10 +506,10 @@ window.onload = () => {
         return;
       }
       if (entity.offsetTop + entity.offsetHeight >= canvas.clientHeight) {
-        // No restar vida si es m9.png o m12.png
+        // No restar vida si es m9.png, m11.png o m12.png
         if (
           !isLife &&
-          !(entity.tagName === "IMG" && (entity.src.includes("m9.png") || entity.src.includes("m12.png")))
+          !(entity.tagName === "IMG" && (entity.src.includes("m9.png") || entity.src.includes("m11.png") || entity.src.includes("m12.png")))
         ) {
           loseLife();
         }
