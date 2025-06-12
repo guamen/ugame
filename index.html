@@ -285,6 +285,8 @@ window.onload = () => {
   const bossTimerText = document.getElementById("bossTimerText");
   const bgMusic = document.getElementById("bgMusic");
 
+  //m9.png es el enemigo que resta vidas
+  //m10.png es el jefe final Fernandox
   const enemyImages = [
     "m1.png","m2.png","m3.png","m4.png","m5.png","m6.png","m7.png","m8.png","m9.png","m11.png",
   ];
@@ -484,7 +486,7 @@ window.onload = () => {
 
   function createLifeDrop() {
     const life = document.createElement("img");
-    life.src = "mVIDA.png";
+    life.src = "mVIDA.png"; // Imagen de la vida
     life.className = "enemy life-drop";
     life.style.left = Math.random() * (canvas.clientWidth - 80) + "px";
     life.style.top = "-100px";
