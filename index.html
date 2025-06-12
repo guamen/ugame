@@ -459,7 +459,10 @@ window.onload = () => {
               // Elimina la bomba también
               target.remove();
               document.getElementById("hitSound").play();
-              
+              score += 10;
+              lives++;
+              scoreDisplay.textContent = score;
+              livesDisplay.textContent = lives;
             }
             else {
               document.getElementById("hitSound").play();
