@@ -472,7 +472,10 @@ window.onload = () => {
         return;
       }
       if (entity.offsetTop + entity.offsetHeight >= canvas.clientHeight) {
-        if (!isLife) loseLife();
+        // No restar vida si es m9.png
+        if (!isLife && !(entity.tagName === "IMG" && entity.src.includes("m9.png"))) {
+          loseLife();
+        }
         entity.remove();
         clearInterval(interval);
       }
